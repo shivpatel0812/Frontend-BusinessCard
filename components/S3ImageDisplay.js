@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import axios from "axios";
 
 const S3ImageDisplay = () => {
-  const [imageUrl, setImageUrl] = useState("");
+  const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [bucketName, setBucketName] = useState("");
   const [imageKey, setImageKey] = useState("");
 
-  const fetchAnalysis = async (data) => {
+  const fetchAnalysis = async (data, imageUrl) => {
     setLoading(true);
     setError("");
     try {
@@ -21,8 +21,11 @@ const S3ImageDisplay = () => {
           },
         }
       );
-      // Assuming the API response contains the analysis result in response.data.analysis
-      setImageUrl(response.data.analysis);
+      const newImage = {
+        url: imageUrl,
+        analysis: response.data.analysis,
+      };
+      setImages([newImage, ...images]);
     } catch (err) {
       setError("An error occurred while fetching the analysis.");
       console.error(err);
@@ -37,7 +40,7 @@ const S3ImageDisplay = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64Image = reader.result.split(",")[1];
-        fetchAnalysis({ image_data: base64Image });
+        fetchAnalysis({ image_data: base64Image }, reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -45,7 +48,7 @@ const S3ImageDisplay = () => {
 
   const handleS3Fetch = () => {
     if (bucketName && imageKey) {
-      fetchAnalysis({ bucket_name: bucketName, image_key: imageKey });
+      fetchAnalysis({ bucket_name: bucketName, image_key: imageKey }, null);
     } else {
       setError("Please provide both S3 bucket name and image key.");
     }
@@ -76,12 +79,21 @@ const S3ImageDisplay = () => {
       </div>
       {loading && <p>Loading...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
-      {imageUrl && (
-        <div>
-          <h3>Analysis Result:</h3>
-          <pre>{imageUrl}</pre>
-        </div>
-      )}
+      <div>
+        {images.map((image, index) => (
+          <div key={index} style={{ marginBottom: "20px" }}>
+            {image.url && (
+              <img
+                src={image.url}
+                alt="Uploaded"
+                style={{ maxWidth: "100%" }}
+              />
+            )}
+            <h3>Analysis Result:</h3>
+            <pre>{image.analysis}</pre>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import axios from "axios";
+import Modal from "react-modal";
+import "../styles.css";
 
 const S3ImageDisplay = () => {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [bucketName, setBucketName] = useState("");
-  const [imageKey, setImageKey] = useState("");
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const fetchAnalysis = async (data, imageUrl) => {
     setLoading(true);
@@ -46,54 +48,67 @@ const S3ImageDisplay = () => {
     }
   };
 
-  const handleS3Fetch = () => {
-    if (bucketName && imageKey) {
-      fetchAnalysis({ bucket_name: bucketName, image_key: imageKey }, null);
-    } else {
-      setError("Please provide both S3 bucket name and image key.");
-    }
+  const handleUploadClick = () => {
+    document.getElementById("fileInput").click();
+  };
+
+  const openModal = (image) => {
+    setSelectedImage(image);
+    setModalIsOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalIsOpen(false);
+    setSelectedImage(null);
   };
 
   return (
     <div>
-      <h1>Image Analysis</h1>
-      <div>
-        <h3>Upload Image</h3>
-        <input type="file" onChange={handleImageUpload} />
-      </div>
-      <div>
-        <h3>Or Fetch from S3</h3>
-        <input
-          type="text"
-          placeholder="Bucket Name"
-          value={bucketName}
-          onChange={(e) => setBucketName(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Image Key"
-          value={imageKey}
-          onChange={(e) => setImageKey(e.target.value)}
-        />
-        <button onClick={handleS3Fetch}>Fetch Image from S3</button>
-      </div>
+      <h2>Image Analysis</h2>
+      <button onClick={handleUploadClick} className="upload-button">
+        Upload Image
+      </button>
+      <input
+        type="file"
+        id="fileInput"
+        onChange={handleImageUpload}
+        style={{ display: "none" }}
+      />
       {loading && <p>Loading...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
-      <div>
+      <div className="card-container">
         {images.map((image, index) => (
-          <div key={index} style={{ marginBottom: "20px" }}>
+          <div key={index} className="card" onClick={() => openModal(image)}>
             {image.url && (
-              <img
-                src={image.url}
-                alt="Uploaded"
-                style={{ maxWidth: "100%" }}
-              />
+              <img src={image.url} alt="Uploaded" className="card-image" />
             )}
-            <h3>Analysis Result:</h3>
-            <pre>{image.analysis}</pre>
           </div>
         ))}
       </div>
+      <Modal
+        isOpen={modalIsOpen}
+        onRequestClose={closeModal}
+        className="modal"
+        overlayClassName="modal-overlay"
+        contentLabel="Image Analysis"
+      >
+        {selectedImage && (
+          <div className="modal-content">
+            <button onClick={closeModal} className="modal-close">
+              &times;
+            </button>
+            {selectedImage.url && (
+              <img
+                src={selectedImage.url}
+                alt="Uploaded"
+                className="modal-image"
+              />
+            )}
+            <h3>Analysis Result:</h3>
+            <pre>{selectedImage.analysis}</pre>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
